@@ -1,0 +1,75 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'Dockerfile'
+      - '.github/workflows/docker-build.yml'
+  workflow_dispatch:
+    inputs:
+      postgis_version:
+        description: 'PostGIS version to build'
+        required: true
+        default: '3.5'
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: rushilsrivastava/postgis-cloudsql
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pg_version: [14, 15, 16, 17]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-flags: --debug
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ matrix.pg_version }}
+            type=raw,value=${{ matrix.pg_version }}-postgis${{ inputs.postgis_version || '3.5' }}
+            type=raw,value=${{ matrix.pg_version }}-postgis${{ inputs.postgis_version || '3.5' }}-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.title=PostGIS with pg_cron
+            org.opencontainers.image.description=PostgreSQL ${{ matrix.pg_version }} with PostGIS ${{ inputs.postgis_version || '3.5' }} and pg_cron
+            org.opencontainers.image.version=${{ matrix.pg_version }}-postgis${{ inputs.postgis_version || '3.5' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          build-args: |
+            PG_VERSION=${{ matrix.pg_version }}
+            POSTGIS_VERSION=${{ inputs.postgis_version || '3.5' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-${{ matrix.pg_version }}
+          cache-to: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache-${{ matrix.pg_version }},mode=max
