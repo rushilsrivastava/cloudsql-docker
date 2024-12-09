@@ -18,9 +18,11 @@ RUN apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Add pg_cron to shared_preload_libraries and set configuration
-RUN echo "shared_preload_libraries = 'pg_cron'" >> /usr/share/postgresql/postgresql.conf.sample \
-    && echo "cron.database_name = 'postgres'" >> /usr/share/postgresql/postgresql.conf.sample
+# Copy initialization script
+COPY init-pg-cron.sh /docker-entrypoint-initdb.d/
+
+# Make the script executable
+RUN chmod +x /docker-entrypoint-initdb.d/init-pg-cron.sh
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
