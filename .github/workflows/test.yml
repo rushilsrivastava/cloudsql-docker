@@ -1,0 +1,32 @@
+name: Test PostgreSQL with pg_cron
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        load: true
+        tags: postgis-cloudsql:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Make test script executable
+      run: chmod +x tests/test_pg_cron.sh
+
+    - name: Run tests
+      run: ./tests/test_pg_cron.sh
