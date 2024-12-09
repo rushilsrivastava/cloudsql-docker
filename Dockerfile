@@ -18,11 +18,14 @@ RUN apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Set default cron database
+ENV POSTGRES_CRON_DB=postgres
+
 # Copy initialization script
-COPY init-pg-cron.sh /docker-entrypoint-initdb.d/
+COPY init-pg-cron.sh /docker-entrypoint-initdb.d/00-init-pg-cron.sh
 
 # Make the script executable
-RUN chmod +x /docker-entrypoint-initdb.d/init-pg-cron.sh
+RUN chmod +x /docker-entrypoint-initdb.d/00-init-pg-cron.sh
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \

@@ -1,23 +1,41 @@
 #!/bin/bash
 set -e
 
-# Enable pg_cron extension in shared_preload_libraries
-sed -i "s/#shared_preload_libraries = ''/shared_preload_libraries = 'pg_cron'/g" ${PGDATA}/postgresql.conf
+echo "Configuring pg_cron..."
 
-# Restart PostgreSQL to load the library
-pg_ctl -D ${PGDATA} -m fast -w restart
+# Use database from env or default to postgres
+dbname=${POSTGRES_CRON_DB:-postgres}
 
-# Now create the extension
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    -- Create the extension
+# Create custom config file
+customconf="${PGDATA}/custom-pg-cron.conf"
+echo "# pg_cron configuration" > "$customconf"
+echo "shared_preload_libraries = 'pg_cron'" >> "$customconf"
+echo "cron.database_name = '$dbname'" >> "$customconf"
+echo "cron.use_background_workers = on" >> "$customconf"
+echo "max_worker_processes = 20" >> "$customconf"
+
+# Set proper permissions
+chown postgres:postgres "$customconf"
+
+# Include custom config in main config
+conf="${PGDATA}/postgresql.conf"
+if ! grep -q "include = '$customconf'" "$conf"; then
+    echo "include = '$customconf'" >> "$conf"
+fi
+
+echo "PostgreSQL configuration:"
+cat "$customconf"
+
+echo "Restarting PostgreSQL..."
+pg_ctl -D "${PGDATA}" -m fast -w restart
+
+echo "Creating pg_cron extension..."
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$dbname" <<-EOSQL
+    -- Create extension
     CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+    -- Grant usage to postgres user
+    GRANT USAGE ON SCHEMA cron TO postgres;
 EOSQL
 
-# Configure pg_cron after extension is created
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    -- Set the database where the pg_cron background worker will run
-    SELECT cron.set_database('postgres');
-EOSQL
-
-# Final restart to ensure all settings are applied
-pg_ctl -D ${PGDATA} -m fast -w restart
+echo "pg_cron installation complete!"
