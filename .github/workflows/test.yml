@@ -1,4 +1,4 @@
-name: Test PostgreSQL with pg_cron
+name: Test PostgreSQL with PostGIS, pg_cron, and HLL
 
 on:
   push:

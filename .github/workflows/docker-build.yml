@@ -12,6 +12,10 @@ on:
         description: 'PostGIS version to build'
         required: true
         default: '3.5'
+      hll_version:
+        description: 'HLL version to build'
+        required: true
+        default: '2.18'
 
 env:
   IMAGE_NAME: rushilsrivastava/postgis-cloudsql
@@ -49,12 +53,14 @@ jobs:
           images: ${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=${{ matrix.pg_version }}
+            type=raw,value=${{ matrix.pg_version }}-${{ github.sha }}
             type=raw,value=${{ matrix.pg_version }}-postgis${{ inputs.postgis_version || '3.5' }}
-            type=raw,value=${{ matrix.pg_version }}-postgis${{ inputs.postgis_version || '3.5' }}-${{ github.sha }}
+            type=raw,value=${{ matrix.pg_version }}-hll${{ inputs.hll_version || '2.18' }}
+            type=raw,value=${{ matrix.pg_version }}-postgis${{ inputs.postgis_version || '3.5' }}-hll${{ inputs.hll_version || '2.18' }}
           labels: |
-            org.opencontainers.image.title=PostGIS with pg_cron
-            org.opencontainers.image.description=PostgreSQL ${{ matrix.pg_version }} with PostGIS ${{ inputs.postgis_version || '3.5' }} and pg_cron
-            org.opencontainers.image.version=${{ matrix.pg_version }}-postgis${{ inputs.postgis_version || '3.5' }}
+            org.opencontainers.image.title=PostGIS with pg_cron and postgres_hll
+            org.opencontainers.image.description=PostgreSQL ${{ matrix.pg_version }} with PostGIS ${{ inputs.postgis_version || '3.5' }}, pg_cron and postgres_hll
+            org.opencontainers.image.version=${{ matrix.pg_version }}-postgis${{ inputs.postgis_version || '3.5' }}-hll${{ inputs.hll_version || '2.18' }}
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -65,6 +71,7 @@ jobs:
           build-args: |
             PG_VERSION=${{ matrix.pg_version }}
             POSTGIS_VERSION=${{ inputs.postgis_version || '3.5' }}
+            HLL_VERSION=${{ inputs.hll_version || '2.18' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |

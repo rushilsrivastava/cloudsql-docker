@@ -37,6 +37,10 @@ run_sql "SHOW cron.database_name;"
 run_sql "SHOW cron.use_background_workers;"
 run_sql "SHOW max_worker_processes;"
 
+# Creating extension pg_cron
+echo "Installing pg_cron extension..."
+run_sql "CREATE EXTENSION IF NOT EXISTS pg_cron;"
+
 # Verify extension
 echo "Checking pg_cron extension..."
 if ! run_sql "SELECT extname, extversion FROM pg_extension WHERE extname = 'pg_cron';" | grep -q "pg_cron"; then
