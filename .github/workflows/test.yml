@@ -7,8 +7,22 @@ on:
     branches: [ master ]
 
 jobs:
-  test:
+  list-tests:
     runs-on: ubuntu-latest
+    outputs:
+      test-files: ${{ steps.set-tests.outputs.test-files }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: set-tests
+        run: echo "test-files=$(ls tests/test_*.sh | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+
+  test:
+    needs: list-tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test-file: ${{ fromJson(needs.list-tests.outputs.test-files) }}
 
     steps:
     - uses: actions/checkout@v3
@@ -25,8 +39,10 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    - name: Make test script executable
-      run: chmod +x tests/test_pg_cron.sh
+    - name: Make scripts executable
+      run: |
+        chmod +x ./test.sh
+        chmod +x ${{ matrix.test-file }}
 
-    - name: Run tests
-      run: ./tests/test_pg_cron.sh
+    - name: Run ${{ matrix.test-file }}
+      run: ./test.sh ${{ matrix.test-file }}
