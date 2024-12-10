@@ -1,4 +1,4 @@
-name: Test PostgreSQL with PostGIS, pg_cron, and HLL
+name: Run tests for extensions on image
 
 on:
   push:
