@@ -10,8 +10,8 @@ fi
 TEST_SCRIPT=$1
 
 # Ensure the test script exists
-if [ ! -f "tests/$TEST_SCRIPT" ]; then
-    echo "Test script tests/$TEST_SCRIPT not found!"
+if [ ! -f "$TEST_SCRIPT" ]; then
+    echo "Test script $TEST_SCRIPT not found!"
     exit 1
 fi
 
