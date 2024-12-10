@@ -42,11 +42,15 @@ if ! run_sql "SELECT extname, extversion FROM pg_extension WHERE extname = 'hll'
 fi
 echo " hll extension is installed"
 
+# List available HLL functions
+echo "Available HLL functions:"
+run_sql "\df hll*"
+
 # Test basic HLL functionality
 echo "Testing basic HLL functionality..."
 run_sql "CREATE TABLE test_hll (id serial primary key, sketch hll);"
 run_sql "INSERT INTO test_hll (sketch) VALUES (hll_empty());"
-run_sql "UPDATE test_hll SET sketch = hll_add(sketch, 1) WHERE id = 1;"
+run_sql "UPDATE test_hll SET sketch = hll_add(sketch, hll_hash_bigint(1)) WHERE id = 1;"
 if ! run_sql "SELECT hll_cardinality(sketch) FROM test_hll WHERE id = 1;" | grep -q "1"; then
     echo " Basic HLL functionality test failed"
     exit 1
