@@ -63,7 +63,7 @@ jobs:
             org.opencontainers.image.version=${{ matrix.pg_version }}-postgis${{ inputs.postgis_version || '3.5' }}-hll${{ inputs.hll_version || '2.18' }}
 
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
